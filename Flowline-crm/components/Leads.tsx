@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, MoreHorizontal, Plus, Download, Upload, Loader2, Check } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Plus, Download, Upload, Loader2, Check, Trash2 } from 'lucide-react';
 import { Lead, PipelineStage } from '../types';
 import { Button, Badge } from './ui/GlassComponents';
 import Papa from 'papaparse';
@@ -11,20 +11,48 @@ interface LeadsProps {
   onAddLead?: () => void;
   onEditLead?: (lead: Lead) => void;
   onDeleteLead?: (id: string) => void;
+  onDeleteLeads?: (ids: string[]) => void;
   onUpdateLeadStatus?: (id: string, status: PipelineStage) => void;
   onLeadsChanged?: () => void;
 }
 
-export const Leads: React.FC<LeadsProps> = ({ leads, onAddLead, onEditLead, onDeleteLead, onUpdateLeadStatus, onLeadsChanged }) => {
+export const Leads: React.FC<LeadsProps> = ({ leads, onAddLead, onEditLead, onDeleteLead, onDeleteLeads, onUpdateLeadStatus, onLeadsChanged }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredLeads = leads.filter(l =>
     l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.company.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const allFilteredSelected = filteredLeads.length > 0 && filteredLeads.every(l => selectedIds.has(l.id));
+  const someFilteredSelected = filteredLeads.some(l => selectedIds.has(l.id));
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredLeads.map(l => l.id)));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} selected lead(s)? This cannot be undone.`)) return;
+    onDeleteLeads?.([...selectedIds]);
+  };
 
   const handleExport = () => {
     const csv = Papa.unparse(leads.map(l => ({
@@ -173,6 +201,11 @@ export const Leads: React.FC<LeadsProps> = ({ leads, onAddLead, onEditLead, onDe
             />
           </div>
           <div className="flex gap-2">
+            {selectedIds.size > 0 && (
+              <Button variant="outline" size="sm" onClick={handleBulkDelete} className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300">
+                <Trash2 size={14} className="mr-1.5" /> Delete ({selectedIds.size})
+              </Button>
+            )}
             <Button variant="outline" size="sm"><Filter size={14} className="mr-2" /> View</Button>
             <Button variant="outline" size="sm" onClick={handleExport}><Download size={14} className="mr-2" /> Export</Button>
           </div>
@@ -186,7 +219,13 @@ export const Leads: React.FC<LeadsProps> = ({ leads, onAddLead, onEditLead, onDe
             >
               <tr>
                 <th className="px-4 py-3 font-inter font-medium text-slate-500 text-[11px] uppercase tracking-wider w-10 bg-white/70 backdrop-blur-md">
-                  <input type="checkbox" className="rounded border-black/20 checked:bg-[#0084FF] checked:border-[#0084FF] accent-[#0084FF] focus:ring-blue-300" />
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    ref={el => { if (el) el.indeterminate = someFilteredSelected && !allFilteredSelected; }}
+                    onChange={toggleSelectAll}
+                    className="rounded border-black/20 checked:bg-[#0084FF] checked:border-[#0084FF] accent-[#0084FF] focus:ring-blue-300 cursor-pointer"
+                  />
                 </th>
                 <th className="px-4 py-3 font-inter font-medium text-slate-500 text-[11px] uppercase tracking-wider bg-white/70 backdrop-blur-md">Contact</th>
                 <th className="px-4 py-3 font-inter font-medium text-slate-500 text-[11px] uppercase tracking-wider bg-white/70 backdrop-blur-md">Company</th>
@@ -201,6 +240,8 @@ export const Leads: React.FC<LeadsProps> = ({ leads, onAddLead, onEditLead, onDe
                 <LeadRow
                   key={lead.id}
                   lead={lead}
+                  selected={selectedIds.has(lead.id)}
+                  onToggleSelect={() => toggleSelectOne(lead.id)}
                   onStatusChange={(status) => onUpdateLeadStatus?.(lead.id, status)}
                   onEdit={() => onEditLead?.(lead)}
                   onDelete={() => onDeleteLead?.(lead.id)}
@@ -219,7 +260,7 @@ export const Leads: React.FC<LeadsProps> = ({ leads, onAddLead, onEditLead, onDe
   );
 };
 
-const LeadRow: React.FC<{ lead: Lead; onStatusChange?: (s: PipelineStage) => void; onEdit?: () => void; onDelete?: () => void }> = ({ lead, onStatusChange, onEdit, onDelete }) => {
+const LeadRow: React.FC<{ lead: Lead; selected: boolean; onToggleSelect: () => void; onStatusChange?: (s: PipelineStage) => void; onEdit?: () => void; onDelete?: () => void }> = ({ lead, selected, onToggleSelect, onStatusChange, onEdit, onDelete }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const statusOptions: PipelineStage[] = [
@@ -239,7 +280,12 @@ const LeadRow: React.FC<{ lead: Lead; onStatusChange?: (s: PipelineStage) => voi
       style={{ background: 'transparent' }}
     >
       <td className="px-4 py-3">
-        <input type="checkbox" className="rounded border-black/20 text-blue-500 focus:ring-blue-300" />
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="rounded border-black/20 text-blue-500 focus:ring-blue-300 cursor-pointer"
+        />
       </td>
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-3">

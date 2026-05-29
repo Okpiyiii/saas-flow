@@ -159,6 +159,20 @@ const Workspace: React.FC = () => {
     setLeads(prev => prev.filter(l => l.id !== id));
   };
 
+  const handleDeleteLeads = async (ids: string[]) => {
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .in('id', ids);
+
+    if (error) {
+      console.error('Error deleting leads:', error);
+      return;
+    }
+
+    setLeads(prev => prev.filter(l => !ids.includes(l.id)));
+  };
+
   const openEditModal = (lead: Lead) => {
     setEditingLead(lead);
     setIsCreateModalOpen(true);
@@ -234,6 +248,7 @@ const Workspace: React.FC = () => {
             onAddLead={() => setIsCreateModalOpen(true)}
             onEditLead={openEditModal}
             onDeleteLead={handleDeleteLead}
+            onDeleteLeads={handleDeleteLeads}
             onLeadsChanged={fetchLeads}
           />
         );
