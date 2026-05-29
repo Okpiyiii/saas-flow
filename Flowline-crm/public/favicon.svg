@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bgGlow" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#0EA5E9" stop-opacity="0.18"/>
+      <stop offset="50%" stop-color="#6366F1" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#A855F7" stop-opacity="0.14"/>
+    </linearGradient>
+    <linearGradient id="neonBlue" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0084FF"/>
+      <stop offset="40%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="electricPurple" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="50%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#C084FC"/>
+    </linearGradient>
+    <linearGradient id="intersectionGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="50%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#C084FC"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <filter id="nodeGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <!-- Dark background -->
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#09090D"/>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#bgGlow)"/>
+
+  <!-- Subtle border -->
+  <rect x="2.5" y="2.5" width="59" height="59" rx="14.5" stroke="white" stroke-width="0.5" opacity="0.08"/>
+  <rect x="3" y="3" width="58" height="58" rx="14" stroke="url(#intersectionGlow)" stroke-width="0.5" opacity="0.15"/>
+
+  <!-- Ribbon 1: Neon blue -->
+  <path d="M 5 54 C 17 36, 28 26, 46 12" stroke="url(#neonBlue)" stroke-width="5.5" stroke-linecap="round" opacity="0.80" filter="url(#glow)"/>
+  <path d="M 5 54 C 17 36, 28 26, 46 12" stroke="white" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Ribbon 2: Electric purple -->
+  <path d="M 59 48 C 44 30, 34 22, 18 8" stroke="url(#electricPurple)" stroke-width="5.5" stroke-linecap="round" opacity="0.80" filter="url(#glow)"/>
+  <path d="M 59 48 C 44 30, 34 22, 18 8" stroke="white" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Glassy sheen arcs -->
+  <path d="M 10 50 C 20 36, 30 28, 44 16" stroke="white" stroke-width="0.8" stroke-linecap="round" opacity="0.20"/>
+  <path d="M 54 44 C 42 30, 32 24, 20 12" stroke="white" stroke-width="0.8" stroke-linecap="round" opacity="0.20"/>
+
+  <!-- Intersection node -->
+  <circle cx="31" cy="24.5" r="3.5" fill="white" opacity="0.95" filter="url(#nodeGlow)"/>
+  <circle cx="31" cy="24.5" r="2.5" fill="url(#intersectionGlow)" opacity="0.9"/>
+  <circle cx="31" cy="24.5" r="1.2" fill="white" opacity="0.9"/>
+
+  <!-- Accent nodes -->
+  <circle cx="20" cy="40" r="1" fill="url(#neonBlue)" opacity="0.8"/>
+  <circle cx="42" cy="18" r="1" fill="url(#electricPurple)" opacity="0.8"/>
+
+  <!-- Studio reflections -->
+  <path d="M 8 10 C 16 6, 26 4, 36 4" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.12"/>
+  <path d="M 56 50 C 52 54, 48 56, 42 58" stroke="white" stroke-width="0.6" stroke-linecap="round" opacity="0.08"/>
+</svg>
