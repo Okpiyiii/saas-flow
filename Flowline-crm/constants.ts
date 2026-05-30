@@ -10,7 +10,7 @@ export const MOCK_LEADS: Lead[] = [
     value: 12000,
     owner: 'JD',
     source: 'Inbound',
-    createdAt: '2023-10-01',
+    created_at: '2023-10-01',
     avatar: 'https://picsum.photos/100/100?random=1'
   },
   {
@@ -22,7 +22,7 @@ export const MOCK_LEADS: Lead[] = [
     value: 5000,
     owner: 'JD',
     source: 'Web',
-    createdAt: '2023-10-02',
+    created_at: '2023-10-02',
     avatar: 'https://picsum.photos/100/100?random=2'
   },
   {
@@ -34,7 +34,7 @@ export const MOCK_LEADS: Lead[] = [
     value: 45000,
     owner: 'JD',
     source: 'Referral',
-    createdAt: '2023-10-05',
+    created_at: '2023-10-05',
     avatar: 'https://picsum.photos/100/100?random=3'
   },
   {
@@ -46,7 +46,7 @@ export const MOCK_LEADS: Lead[] = [
     value: 8500,
     owner: 'JD',
     source: 'Outbound',
-    createdAt: '2023-09-15',
+    created_at: '2023-09-15',
     avatar: 'https://picsum.photos/100/100?random=4'
   },
   {
@@ -58,7 +58,7 @@ export const MOCK_LEADS: Lead[] = [
     value: 2000,
     owner: 'JD',
     source: 'Web',
-    createdAt: '2023-10-10',
+    created_at: '2023-10-10',
     avatar: 'https://picsum.photos/100/100?random=5'
   },
   {
@@ -70,7 +70,7 @@ export const MOCK_LEADS: Lead[] = [
     value: 15000,
     owner: 'JD',
     source: 'Inbound',
-    createdAt: '2023-09-01',
+    created_at: '2023-09-01',
     avatar: 'https://picsum.photos/100/100?random=6'
   },
   {
@@ -82,7 +82,7 @@ export const MOCK_LEADS: Lead[] = [
     value: 9200,
     owner: 'JD',
     source: 'Referral',
-    createdAt: '2023-10-12',
+    created_at: '2023-10-12',
     avatar: 'https://picsum.photos/100/100?random=7'
   }
 ];
