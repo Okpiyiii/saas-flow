@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 type AuthMode = 'LOGIN' | 'SIGNUP';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_MIN = 8;
+const PASSWORD_MIN = 6;
 
 function validateEmail(value: string): string | null {
   if (!value.trim()) return 'Email is required.';
