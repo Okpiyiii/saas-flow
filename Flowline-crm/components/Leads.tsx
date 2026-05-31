@@ -5,6 +5,7 @@ import { Lead, PipelineStage } from '../types';
 import { Button, Badge } from './ui/GlassComponents';
 import Papa from 'papaparse';
 import { supabase } from '../src/lib/supabase';
+import { logError } from '../src/lib/logger';
 
 interface LeadsProps {
   leads: Lead[];
@@ -117,7 +118,7 @@ export const Leads: React.FC<LeadsProps> = ({ leads, onAddLead, onEditLead, onDe
             setTimeout(() => setImportSuccess(null), 3000);
           }
         } catch (error) {
-          console.error('Import error:', error);
+          logError('importLeads', error);
           alert('Error importing leads. Check console for details.');
         } finally {
           setIsImporting(false);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './src/lib/supabase';
+import { logError } from './src/lib/logger';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { Pipeline } from './components/Pipeline';
@@ -74,12 +75,12 @@ const Workspace: React.FC = () => {
         .select('*');
 
       if (error) {
-        console.error('Error fetching leads:', error);
+        logError('fetchLeads', error);
       } else {
         setLeads(data as unknown as Lead[] || []);
       }
     } catch (error) {
-      console.error('Error:', error);
+      logError('fetchLeads', error);
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ const Workspace: React.FC = () => {
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating status:', error);
+      logError('updateLeadStatus', error);
       fetchLeads(); // Revert on error
     }
   };
@@ -152,7 +153,7 @@ const Workspace: React.FC = () => {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting lead:', error);
+      logError('deleteLead', error);
       return;
     }
 
@@ -166,7 +167,7 @@ const Workspace: React.FC = () => {
       .in('id', ids);
 
     if (error) {
-      console.error('Error deleting leads:', error);
+      logError('deleteLeads', error);
       return;
     }
 

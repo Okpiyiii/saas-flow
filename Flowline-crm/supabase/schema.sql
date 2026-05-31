@@ -1,5 +1,21 @@
+-- ============================================================
+-- FLOWLINE CRM — SUPABASE SCHEMA & SECURITY POLICIES
+-- ============================================================
+--
+-- BEFORE RUNNING THIS SCHEMA:
+-- 1. In your Supabase Dashboard → Project Settings → API:
+--    - Under "Allowed Origins", remove "*" (if present) and add:
+--      https://saas-flow-sigma.vercel.app
+--      http://localhost:3000 (for local development)
+--    - This prevents unauthorized domains from calling your REST API.
+--
+-- 2. In Supabase Dashboard → Authentication → Providers:
+--    - Enable CAPTCHA protection under "Bot Detection"
+--    - This adds gotrue_meta_security.captcha_token protection.
+-- ============================================================
+
 -- Create a table for public profiles (optional if you want to store extra user data, but good practice)
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid references auth.users not null primary key,
   email text,
   full_name text,
@@ -9,17 +25,24 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
-create policy "Public profiles are viewable by everyone." on public.profiles
-  for select using (true);
+drop policy if exists "Public profiles are viewable by everyone." on public.profiles;
+create policy "Users can view their own profile." on public.profiles
+  for select using (auth.uid() = id);
 
+drop policy if exists "Users can insert their own profile." on public.profiles;
 create policy "Users can insert their own profile." on public.profiles
   for insert with check (auth.uid() = id);
 
+drop policy if exists "Users can update own profile." on public.profiles;
 create policy "Users can update own profile." on public.profiles
   for update using (auth.uid() = id);
 
+drop policy if exists "Users can delete their own profile." on public.profiles;
+create policy "Users can delete their own profile." on public.profiles
+  for delete using (auth.uid() = id);
+
 -- Create a table for leads
-create table public.leads (
+create table if not exists public.leads (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   name text not null,
@@ -38,22 +61,26 @@ create table public.leads (
 
 alter table public.leads enable row level security;
 
+drop policy if exists "Users can view their own leads." on public.leads;
 create policy "Users can view their own leads." on public.leads
   for select using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own leads." on public.leads;
 create policy "Users can insert their own leads." on public.leads
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own leads." on public.leads;
 create policy "Users can update their own leads." on public.leads
   for update using (auth.uid() = user_id);
 
+drop policy if exists "Users can delete their own leads." on public.leads;
 create policy "Users can delete their own leads." on public.leads
   for delete using (auth.uid() = user_id);
 
 -- Create a table for pipeline stages (optional if you want dynamic stages per user)
 -- For v1, we might stick to hardcoded stages or simple per-user config. 
 -- Let's enable a specific table for extensibility.
-create table public.pipeline_stages (
+create table if not exists public.pipeline_stages (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   name text not null,
@@ -64,20 +91,33 @@ create table public.pipeline_stages (
 
 alter table public.pipeline_stages enable row level security;
 
+drop policy if exists "Users can view their own stages." on public.pipeline_stages;
 create policy "Users can view their own stages." on public.pipeline_stages
   for select using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own stages." on public.pipeline_stages;
 create policy "Users can insert their own stages." on public.pipeline_stages
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own stages." on public.pipeline_stages;
 create policy "Users can update their own stages." on public.pipeline_stages
   for update using (auth.uid() = user_id);
 
+drop policy if exists "Users can delete their own stages." on public.pipeline_stages;
 create policy "Users can delete their own stages." on public.pipeline_stages
   for delete using (auth.uid() = user_id);
 
 -- Set up Realtime for leads (optional, but requested in "future" list, good to have)
-alter publication supabase_realtime add table public.leads;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'leads' and schemaname = 'public'
+  ) then
+    alter publication supabase_realtime add table public.leads;
+  end if;
+end;
+$$;
 
 -- Function to handle new user signup
 create or replace function public.handle_new_user() 

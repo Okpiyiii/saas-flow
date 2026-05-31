@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, User, CheckSquare, Loader2, ArrowRight } from 'lucide-react';
 import { supabase } from '../src/lib/supabase';
+import { logError } from '../src/lib/logger';
 import { Lead, Task, ViewState } from '../types';
 import { Badge } from './ui/GlassComponents';
 
@@ -72,7 +73,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose, o
                 setResults(newResults);
 
             } catch (error) {
-                console.error("Search error", error);
+                logError('search', error);
             } finally {
                 setLoading(false);
             }

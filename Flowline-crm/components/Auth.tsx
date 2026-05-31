@@ -1,9 +1,31 @@
 import React, { useState } from 'react';
 import { supabase } from '../src/lib/supabase';
+import { logError } from '../src/lib/logger';
+import { throttleAuthAttempt } from '../src/lib/throttle';
 import { useNavigate, Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 type AuthMode = 'LOGIN' | 'SIGNUP';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_MIN = 8;
+
+function validateEmail(value: string): string | null {
+  if (!value.trim()) return 'Email is required.';
+  if (!EMAIL_RE.test(value)) return 'Please enter a valid email address.';
+  return null;
+}
+
+function validatePassword(value: string, isSignup: boolean): string | null {
+  if (!value) return 'Password is required.';
+  if (value.length < PASSWORD_MIN) return `Password must be at least ${PASSWORD_MIN} characters.`;
+  if (isSignup) {
+    if (!/[A-Z]/.test(value)) return 'Password must include at least one uppercase letter.';
+    if (!/[a-z]/.test(value)) return 'Password must include at least one lowercase letter.';
+    if (!/[0-9]/.test(value)) return 'Password must include at least one number.';
+  }
+  return null;
+}
 
 const shakeKeyframes = `
 @keyframes shake {
@@ -18,19 +40,90 @@ const shakeKeyframes = `
 }
 `;
 
+const errorFieldStyle: React.CSSProperties = {
+  background: 'rgba(255,68,68,0.03)',
+  boxShadow: 'inset 0px 2px 4px rgba(0,0,0,0.05), 0 0 0 1px #FF4444',
+  borderWidth: '2px',
+  borderColor: '#FF4444',
+};
+
+const normalFieldStyle: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.03)',
+  boxShadow: 'inset 0px 2px 4px rgba(0,0,0,0.05)',
+  borderWidth: '1px',
+  borderColor: 'transparent',
+};
+
+const focusFieldStyle: React.CSSProperties = {
+  background: 'rgba(0,132,255,0.02)',
+  boxShadow: 'inset 0px 2px 4px rgba(0,0,0,0.05), 0px 0px 0px 4px rgba(0,132,255,0.1)',
+  border: '2px solid rgba(0,132,255,0.6)',
+};
+
 export const Auth: React.FC<{ mode: AuthMode }> = ({ mode }) => {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [formError, setFormError] = useState<string | null>(null);
+    const [emailError, setEmailError] = useState<string | null>(null);
+    const [passwordError, setPasswordError] = useState<string | null>(null);
     const [shakeField, setShakeField] = useState<string | null>(null);
+
+    const clearFieldErrors = () => {
+      setEmailError(null);
+      setPasswordError(null);
+      setFormError(null);
+    };
+
+    const handleEmailBlur = () => {
+      const err = validateEmail(email);
+      setEmailError(err);
+    };
+
+    const handlePasswordBlur = () => {
+      const err = validatePassword(password, mode === 'SIGNUP');
+      setPasswordError(err);
+    };
+
+    const handleEmailChange = (value: string) => {
+      setEmail(value);
+      if (emailError) setEmailError(null);
+      if (formError) setFormError(null);
+    };
+
+    const handlePasswordChange = (value: string) => {
+      setPassword(value);
+      if (passwordError) setPasswordError(null);
+      if (formError) setFormError(null);
+    };
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const { allowed, waitSeconds } = throttleAuthAttempt();
+        if (!allowed) {
+          setFormError(`Too many attempts. Please wait ${waitSeconds} seconds before trying again.`);
+          setShakeField('email');
+          setTimeout(() => setShakeField(null), 400);
+          return;
+        }
+
+        const emailErr = validateEmail(email);
+        const passwordErr = validatePassword(password, mode === 'SIGNUP');
+        setEmailError(emailErr);
+        setPasswordError(passwordErr);
+
+        if (emailErr || passwordErr) {
+          setShakeField(emailErr ? 'email' : 'password');
+          setTimeout(() => setShakeField(null), 400);
+          return;
+        }
+
         setLoading(true);
-        setError(null);
+        setFormError(null);
         setShakeField(null);
+        clearFieldErrors();
 
         try {
             if (mode === 'SIGNUP') {
@@ -50,14 +143,21 @@ export const Auth: React.FC<{ mode: AuthMode }> = ({ mode }) => {
                 navigate('/app');
             }
         } catch (err: any) {
-            console.error('Auth Error:', err);
-            setError(err.message);
+            logError('Auth', err);
+            setFormError(err?.message === 'Invalid login credentials'
+              ? 'Invalid email or password. Please try again.'
+              : 'Something went wrong. Please try again.');
             setShakeField('email');
             setTimeout(() => setShakeField(null), 400);
         } finally {
             setLoading(false);
         }
     };
+
+    const fieldHasError = (fieldName: string) =>
+      (fieldName === 'email' && emailError) ||
+      (fieldName === 'password' && passwordError) ||
+      (formError && shakeField === fieldName);
 
     return (
         <>
@@ -72,7 +172,6 @@ export const Auth: React.FC<{ mode: AuthMode }> = ({ mode }) => {
                         background: 'linear-gradient(135deg, #60B1FF 0%, #319AFF 100%)',
                     }}
                 >
-                    {/* Subtle gradient noise/texture overlay */}
                     <div className="absolute inset-0 opacity-20"
                         style={{
                             background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.4) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(255,255,255,0.15) 0%, transparent 60%)',
@@ -132,12 +231,12 @@ export const Auth: React.FC<{ mode: AuthMode }> = ({ mode }) => {
 
                         {/* Form */}
                         <form onSubmit={handleAuth} className="space-y-5">
-                            {error && (
+                            {formError && (
                                 <div
                                     className={`p-3 text-sm text-red-600 bg-red-50 rounded-[12px] border ${shakeField === 'email' ? 'shake' : ''}`}
                                     style={{ borderColor: '#FF4444' }}
                                 >
-                                    {error}
+                                    {formError}
                                 </div>
                             )}
 
@@ -149,30 +248,26 @@ export const Auth: React.FC<{ mode: AuthMode }> = ({ mode }) => {
                                 <input
                                     type="email"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => handleEmailChange(e.target.value)}
                                     required
-                                    className={`w-full px-4 py-3 outline-none transition-all duration-200 font-inter text-[14px] text-slate-900 placeholder:text-slate-400 placeholder:font-inter placeholder:font-normal rounded-[12px] ${error || shakeField === 'email' ? 'border-[#FF4444] shake' : 'border-transparent'}`}
-                                    style={{
-                                        background: 'rgba(0,0,0,0.03)',
-                                        boxShadow: error ? 'inset 0px 2px 4px rgba(0,0,0,0.05), 0 0 0 1px #FF4444' : 'inset 0px 2px 4px rgba(0,0,0,0.05)',
-                                        borderWidth: error ? '2px' : '1px',
-                                    }}
+                                    className={`w-full px-4 py-3 outline-none transition-all duration-200 font-inter text-[14px] text-slate-900 placeholder:text-slate-400 placeholder:font-inter placeholder:font-normal rounded-[12px] ${fieldHasError('email') ? 'shake border-[#FF4444]' : 'border-transparent'}`}
+                                    style={fieldHasError('email') ? errorFieldStyle : normalFieldStyle}
                                     onFocus={(e) => {
-                                        if (!error) {
-                                            e.currentTarget.style.background = 'rgba(0,132,255,0.02)';
-                                            e.currentTarget.style.boxShadow = 'inset 0px 2px 4px rgba(0,0,0,0.05), 0px 0px 0px 4px rgba(0,132,255,0.1)';
-                                            e.currentTarget.style.border = '2px solid rgba(0,132,255,0.6)';
+                                        if (!fieldHasError('email')) {
+                                          Object.assign(e.currentTarget.style, focusFieldStyle);
                                         }
                                     }}
                                     onBlur={(e) => {
-                                        if (!error) {
-                                            e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
-                                            e.currentTarget.style.boxShadow = 'inset 0px 2px 4px rgba(0,0,0,0.05)';
-                                            e.currentTarget.style.border = '1px solid transparent';
+                                        handleEmailBlur();
+                                        if (!fieldHasError('email')) {
+                                          Object.assign(e.currentTarget.style, normalFieldStyle);
                                         }
                                     }}
                                     placeholder="name@company.com"
                                 />
+                                {emailError && (
+                                  <p className="font-inter text-[12px] text-red-500 mt-1">{emailError}</p>
+                                )}
                             </div>
 
                             {/* Password Field */}
@@ -183,31 +278,26 @@ export const Auth: React.FC<{ mode: AuthMode }> = ({ mode }) => {
                                 <input
                                     type="password"
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) => handlePasswordChange(e.target.value)}
                                     required
-                                    minLength={6}
-                                    className={`w-full px-4 py-3 outline-none transition-all duration-200 font-inter text-[14px] text-slate-900 placeholder:text-slate-400 placeholder:font-inter placeholder:font-normal rounded-[12px] ${error || shakeField === 'email' ? 'border-[#FF4444] shake' : 'border-transparent'}`}
-                                    style={{
-                                        background: 'rgba(0,0,0,0.03)',
-                                        boxShadow: error ? 'inset 0px 2px 4px rgba(0,0,0,0.05), 0 0 0 1px #FF4444' : 'inset 0px 2px 4px rgba(0,0,0,0.05)',
-                                        borderWidth: error ? '2px' : '1px',
-                                    }}
+                                    className={`w-full px-4 py-3 outline-none transition-all duration-200 font-inter text-[14px] text-slate-900 placeholder:text-slate-400 placeholder:font-inter placeholder:font-normal rounded-[12px] ${fieldHasError('password') ? 'shake border-[#FF4444]' : 'border-transparent'}`}
+                                    style={fieldHasError('password') ? errorFieldStyle : normalFieldStyle}
                                     onFocus={(e) => {
-                                        if (!error) {
-                                            e.currentTarget.style.background = 'rgba(0,132,255,0.02)';
-                                            e.currentTarget.style.boxShadow = 'inset 0px 2px 4px rgba(0,0,0,0.05), 0px 0px 0px 4px rgba(0,132,255,0.1)';
-                                            e.currentTarget.style.border = '2px solid rgba(0,132,255,0.6)';
+                                        if (!fieldHasError('password')) {
+                                          Object.assign(e.currentTarget.style, focusFieldStyle);
                                         }
                                     }}
                                     onBlur={(e) => {
-                                        if (!error) {
-                                            e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
-                                            e.currentTarget.style.boxShadow = 'inset 0px 2px 4px rgba(0,0,0,0.05)';
-                                            e.currentTarget.style.border = '1px solid transparent';
+                                        handlePasswordBlur();
+                                        if (!fieldHasError('password')) {
+                                          Object.assign(e.currentTarget.style, normalFieldStyle);
                                         }
                                     }}
                                     placeholder="••••••••"
                                 />
+                                {passwordError && (
+                                  <p className="font-inter text-[12px] text-red-500 mt-1">{passwordError}</p>
+                                )}
                             </div>
 
                             {/* Primary CTA */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../src/lib/supabase';
+import { logError } from '../src/lib/logger';
 import { GlassCard, Button } from './ui/GlassComponents';
 import { User, Bell, Loader2, Check } from 'lucide-react';
 
@@ -55,7 +56,7 @@ export const Settings: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading user data!', error);
+      logError('getProfile', error);
     } finally {
       setLoading(false);
     }
@@ -83,7 +84,7 @@ export const Settings: React.FC = () => {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      console.error('Error updating the data!', error);
+      logError('updateProfile', error);
       alert('Error updating profile!');
     } finally {
       setSaving(false);
@@ -153,7 +154,7 @@ export const Settings: React.FC = () => {
                       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
                       setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
                     } catch (error) {
-                      console.error('Error uploading image:', error);
+                      logError('avatarUpload', error);
                       alert('Error uploading image');
                     } finally {
                       setSaving(false);

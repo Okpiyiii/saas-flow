@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, LayoutGrid, List, Search } from 'lucide-react';
 import { supabase } from '../src/lib/supabase';
+import { logError } from '../src/lib/logger';
 import { Task, TaskStatus, Lead } from '../types';
 import { Button } from './ui/GlassComponents';
 import { TaskBoard } from './TaskBoard';
@@ -35,12 +36,12 @@ export const Tasks: React.FC<TasksProps> = ({ leads, onOpenTaskModal, refreshTri
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.error('Error fetching tasks:', error);
+                logError('fetchTasks', error);
             } else {
                 setTasks(data as unknown as Task[] || []);
             }
         } catch (error) {
-            console.error('Error:', error);
+            logError('fetchTasks', error);
         } finally {
             setLoading(false);
         }
@@ -54,7 +55,7 @@ export const Tasks: React.FC<TasksProps> = ({ leads, onOpenTaskModal, refreshTri
             if (error) throw error;
             setTasks(prev => prev.filter(t => t.id !== id));
         } catch (err) {
-            console.error("Error deleting task:", err);
+            logError('deleteTask', err);
         }
     };
 
@@ -63,7 +64,7 @@ export const Tasks: React.FC<TasksProps> = ({ leads, onOpenTaskModal, refreshTri
 
         const { error } = await supabase.from('tasks').update({ status }).eq('id', id);
         if (error) {
-            console.error("Error updating status:", error);
+            logError('updateTaskStatus', error);
             fetchTasks();
         }
     };
