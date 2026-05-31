@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://saas-flow-sigma.vercel.app/sitemap.xml
